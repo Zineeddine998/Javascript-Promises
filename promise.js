@@ -28,10 +28,8 @@ class APromise {
 
 //depending on the state of the object promise we can call the handlers or store it until the object is ready
   function handle(promise, handler){
-
-
-
-    while(promise.value instanceof APromise){
+    
+     while(promise.state !== REJECTED instanceof APromise){
         promise = promise.value;
     }
       if(promise.state === PENDING){
@@ -61,15 +59,46 @@ class APromise {
      
   }
 function handleResolved(promise , onFulfilled , onRejected){
-    const bananas = promise.state === FULFILLED ? onFulfilled : onRejected;
-  bananas(promise.value);
+
+    setImediate(() => {
+        const bananas = promise.state === FULFILLED ? onFulfilled : onRejected;
+        bananas(promise.value);
+    })
+  
 }
 //fulfill the 'value'
 function  fulfill (promise ,  value ){
+    if(value === promise){
+        return reject(promise , new TypeError())
+    }
 
+    if(value && (typeof value === 'object' || typeof value === 'function' )){
+        let then 
+        try {
+            then = value.then;
+        }catch (err){
+            return reject(promise, err)
+        }
+    
+
+    if(then === promise.then && promise instanceof APromise ){
     promise.state = FULFILLED;
     promise.value = value;
+    recover(promise);
+    }
+
+    //thenable
+    if(typeof then === 'function'){
+        return doResolve(promise, then.bind(value))
+    }
 }
+
+promise.state = FULFILLED;
+    promise.value = value;
+    recover(promise);
+
+}
+
 //or we can reject the reason 
 function reject(promise , reason ){
     promise.state = REJECTED;
